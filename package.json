@@ -4,7 +4,9 @@
   "description": "const BOT_TOKEN = '7762199917:AAGimHdXulwYiVspij8Jwr_hNO7dctRiITk';\r const YOUR_TELEGRAM_USER_ID = '5058242890'; // <- You can get this by talking to @userinfobot\r const CHANNEL_USERNAME = '@wallpaper_yamiro'; // e.g. @myChannelName",
   "main": "bot.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node bot.js",
+    "build": "echo 'No build needed' && exit 0"
   },
   "repository": {
     "type": "git",
