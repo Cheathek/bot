@@ -7,7 +7,7 @@ const PQueue = require('p-queue').default;
 const queue = new PQueue({ concurrency: 1 }); // Sequential processing
 
 // Configuration (REPLACE THESE!)
-const BOT_TOKEN = '7842549809:AAGUKszjuUlY0l5Km6RKU_OF4XDbOuIC1Jk'; // From @BotFather
+const BOT_TOKEN = '7762199917:AAGimHdXulwYiVspij8Jwr_hNO7dctRiITk'; // From @BotFather
 const YOUR_TELEGRAM_USER_ID = '5058242890'; // From @userinfobot
 const CHANNEL_USERNAME = '@wallpaper_yamiro'; // Your channel username with @
 
