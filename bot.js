@@ -11,7 +11,7 @@ const YOUR_TELEGRAM_USER_ID = process.env.YOUR_TELEGRAM_USER_ID;
 const CHANNEL_USERNAME = process.env.CHANNEL_USERNAME;
 const PORT = process.env.PORT || 3000;
 const WEBHOOK_PATH = `/telegraf/${BOT_TOKEN}`;
-const WEBHOOK_URL = process.env.WEBHOOK_URL; // e.g. https://your-app-name.up.railway.app
+const WEBHOOK_URL = process.env.WEBHOOK_URL;
 const IS_DEV = process.env.NODE_ENV !== 'production';
 
 if (!BOT_TOKEN || !YOUR_TELEGRAM_USER_ID || !CHANNEL_USERNAME) {
