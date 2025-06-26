@@ -3,12 +3,20 @@ const axios = require('axios');
 const crypto = require('crypto');
 const fs = require('fs-extra');
 const path = require('path');
+const express = require('express');
 
-// Configuration (REPLACE THESE!)
-const BOT_TOKEN = '7762199917:'; // From @BotFather
-const YOUR_TELEGRAM_USER_ID = ''; // From @userinfobot
-const CHANNEL_USERNAME = '@'; // Your channel username with @
+// Configuration (from environment variables)
+const BOT_TOKEN = process.env.BOT_TOKEN;
+const YOUR_TELEGRAM_USER_ID = process.env.YOUR_TELEGRAM_USER_ID;
+const CHANNEL_USERNAME = process.env.CHANNEL_USERNAME;
+const PORT = process.env.PORT || 3000;
+const WEBHOOK_PATH = `/telegraf/${BOT_TOKEN}`;
+const WEBHOOK_URL = process.env.WEBHOOK_URL; // e.g. https://your-app-name.up.railway.app
+const IS_DEV = process.env.NODE_ENV !== 'production';
 
+if (!BOT_TOKEN || !YOUR_TELEGRAM_USER_ID || !CHANNEL_USERNAME) {
+  throw new Error('Missing BOT_TOKEN, YOUR_TELEGRAM_USER_ID, or CHANNEL_USERNAME in environment variables!');
+}
 
 const bot = new Telegraf(BOT_TOKEN);
 const HASHES_FILE = path.join(__dirname, 'hashes.json');
@@ -18,7 +26,7 @@ const TEMP_DIR = path.join(__dirname, 'temp');
 let fileHashes = new Set();
 let messageHashMap = new Map();
 let PQueue;
-let queue; // <-- add this
+let queue;
 
 // Load saved data
 async function loadData() {
@@ -62,7 +70,7 @@ async function generateFileHash(fileLink, tempName) {
   return hash;
 }
 
-// Replace your current channel_post handler with this:
+// Channel post handler
 bot.on('channel_post', (ctx) => {
   queue.add(async () => {
     try {
@@ -70,8 +78,8 @@ bot.on('channel_post', (ctx) => {
       if (!message) return;
 
       const file = message.photo?.[message.photo.length - 1] ||
-                 message.document ||
-                 message.video;
+                   message.document ||
+                   message.video;
       if (!file) return;
 
       const fileId = file.file_id;
@@ -86,9 +94,8 @@ bot.on('channel_post', (ctx) => {
             `🚫 Deleted duplicate in ${CHANNEL_USERNAME}`
           );
         } catch (deleteError) {
-          if (deleteError.response.error_code === 400) {
+          if (deleteError.response?.error_code === 400) {
             console.log('Message already deleted or not found');
-            // Remove the hash since the message is gone
             fileHashes.delete(hash);
             messageHashMap.delete(hash);
             await saveData();
@@ -113,13 +120,31 @@ bot.on('channel_post', (ctx) => {
 // Start bot
 (async () => {
   PQueue = (await import('p-queue')).default;
-  queue = new PQueue({ concurrency: 1, interval: 1000 }); // Sequential processing
+  queue = new PQueue({ concurrency: 1, interval: 1000 });
 
   await loadData();
   await fs.ensureDir(TEMP_DIR);
 
-  bot.launch();
-  console.log('🤖 Bot started monitoring', CHANNEL_USERNAME);
+  const app = express();
+  app.use(express.json());
+
+  if (!IS_DEV && WEBHOOK_URL) {
+    // Production: use webhook
+    app.use(bot.webhookCallback(WEBHOOK_PATH));
+    await bot.telegram.setWebhook(`${WEBHOOK_URL}${WEBHOOK_PATH}`);
+    app.get('/', (req, res) => res.send('Bot is running!'));
+    app.listen(PORT, () => {
+      console.log(`🚀 Webhook server running on port ${PORT}`);
+    });
+  } else {
+    // Development: use polling
+    await bot.telegram.deleteWebhook();
+    bot.launch();
+    app.get('/', (req, res) => res.send('Bot is running in polling mode!'));
+    app.listen(PORT, () => {
+      console.log(`🤖 Polling server running on port ${PORT}`);
+    });
+  }
 
   process.once('SIGINT', () => bot.stop('SIGINT'));
   process.once('SIGTERM', () => bot.stop('SIGTERM'));
