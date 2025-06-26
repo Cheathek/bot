@@ -4,12 +4,13 @@ const crypto = require('crypto');
 const fs = require('fs-extra');
 const path = require('path');
 const PQueue = require('p-queue').default;
-const queue = new PQueue({ concurrency: 1 }); // Sequential processing
+const queue = new PQueue({ concurrency: 1, interval: 1000 }); // Sequential processing
 
 // Configuration (REPLACE THESE!)
 const BOT_TOKEN = '7762199917:AAGimHdXulwYiVspij8Jwr_hNO7dctRiITk'; // From @BotFather
 const YOUR_TELEGRAM_USER_ID = '5058242890'; // From @userinfobot
 const CHANNEL_USERNAME = '@wallpaper_yamiro'; // Your channel username with @
+
 
 const bot = new Telegraf(BOT_TOKEN);
 const HASHES_FILE = path.join(__dirname, 'hashes.json');
@@ -61,34 +62,46 @@ async function generateFileHash(fileLink, tempName) {
   return hash;
 }
 
-// Handle channel posts
+// Replace your current channel_post handler with this:
 bot.on('channel_post', (ctx) => {
   queue.add(async () => {
     try {
       const message = ctx.channelPost;
-      const file = message.photo?.[message.photo.length - 1] ||
-        message.document ||
-        message.video;
+      if (!message) return;
 
+      const file = message.photo?.[message.photo.length - 1] ||
+                 message.document ||
+                 message.video;
       if (!file) return;
 
       const fileId = file.file_id;
       const fileLink = await ctx.telegram.getFileLink(fileId);
       const hash = await generateFileHash(fileLink.href, `${fileId}.tmp`);
 
-      const messageId = message.message_id;
-      const chatId = message.chat.id;
-
       if (fileHashes.has(hash)) {
-        await ctx.telegram.deleteMessage(chatId, messageId);
-
-        await ctx.telegram.sendMessage(
-          YOUR_TELEGRAM_USER_ID,
-          `🚫 Deleted duplicate in ${CHANNEL_USERNAME}`
-        );
+        try {
+          await ctx.telegram.deleteMessage(message.chat.id, message.message_id);
+          await ctx.telegram.sendMessage(
+            YOUR_TELEGRAM_USER_ID,
+            `🚫 Deleted duplicate in ${CHANNEL_USERNAME}`
+          );
+        } catch (deleteError) {
+          if (deleteError.response.error_code === 400) {
+            console.log('Message already deleted or not found');
+            // Remove the hash since the message is gone
+            fileHashes.delete(hash);
+            messageHashMap.delete(hash);
+            await saveData();
+          } else {
+            throw deleteError;
+          }
+        }
       } else {
         fileHashes.add(hash);
-        messageHashMap.set(hash, { messageId, chatId });
+        messageHashMap.set(hash, {
+          messageId: message.message_id,
+          chatId: message.chat.id
+        });
         await saveData();
       }
     } catch (err) {
