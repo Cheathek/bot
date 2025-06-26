@@ -3,9 +3,11 @@ const axios = require('axios');
 const crypto = require('crypto');
 const fs = require('fs-extra');
 const path = require('path');
+const PQueue = require('p-queue').default;
+const queue = new PQueue({ concurrency: 1 }); // Sequential processing
 
 // Configuration (REPLACE THESE!)
-const BOT_TOKEN = '7762199917:AAGimHdXulwYiVspij8Jwr_hNO7dctRiITk'; // From @BotFather
+const BOT_TOKEN = '7842549809:AAGUKszjuUlY0l5Km6RKU_OF4XDbOuIC1Jk'; // From @BotFather
 const YOUR_TELEGRAM_USER_ID = '5058242890'; // From @userinfobot
 const CHANNEL_USERNAME = '@wallpaper_yamiro'; // Your channel username with @
 
@@ -55,52 +57,52 @@ async function generateFileHash(fileLink, tempName) {
 
   const fileBuffer = await fs.readFile(filePath);
   const hash = crypto.createHash('sha256').update(fileBuffer).digest('hex');
-  await fs.remove(filePath).catch(() => {});
+  await fs.remove(filePath).catch(() => { });
   return hash;
 }
 
 // Handle channel posts
-bot.on('channel_post', async (ctx) => {
-  try {
-    const message = ctx.channelPost;
-    const file = message.photo?.[message.photo.length - 1] || 
-                 message.document || 
-                 message.video;
+bot.on('channel_post', (ctx) => {
+  queue.add(async () => {
+    try {
+      const message = ctx.channelPost;
+      const file = message.photo?.[message.photo.length - 1] ||
+        message.document ||
+        message.video;
 
-    if (!file) return;
+      if (!file) return;
 
-    const fileId = file.file_id;
-    const fileLink = await ctx.telegram.getFileLink(fileId);
-    const hash = await generateFileHash(fileLink.href, `${fileId}.tmp`);
+      const fileId = file.file_id;
+      const fileLink = await ctx.telegram.getFileLink(fileId);
+      const hash = await generateFileHash(fileLink.href, `${fileId}.tmp`);
 
-    const messageId = message.message_id;
-    const chatId = message.chat.id;
+      const messageId = message.message_id;
+      const chatId = message.chat.id;
 
-    if (fileHashes.has(hash)) {
-      // Delete duplicate
-      await ctx.telegram.deleteMessage(chatId, messageId);
-      
-      // Notify you
-      await ctx.telegram.sendMessage(
-        YOUR_TELEGRAM_USER_ID,
-        `🚫 Deleted duplicate in ${CHANNEL_USERNAME}`
-      );
-    } else {
-      // Store new file
-      fileHashes.add(hash);
-      messageHashMap.set(hash, { messageId, chatId });
-      await saveData();
+      if (fileHashes.has(hash)) {
+        await ctx.telegram.deleteMessage(chatId, messageId);
+
+        await ctx.telegram.sendMessage(
+          YOUR_TELEGRAM_USER_ID,
+          `🚫 Deleted duplicate in ${CHANNEL_USERNAME}`
+        );
+      } else {
+        fileHashes.add(hash);
+        messageHashMap.set(hash, { messageId, chatId });
+        await saveData();
+      }
+    } catch (err) {
+      console.error('Error processing media:', err);
     }
-  } catch (err) {
-    console.error('Error:', err);
-  }
+  });
 });
+
 
 // Start bot
 (async () => {
   await loadData();
   await fs.ensureDir(TEMP_DIR);
-  
+
   bot.launch();
   console.log('🤖 Bot started monitoring', CHANNEL_USERNAME);
 
