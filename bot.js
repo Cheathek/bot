@@ -5,9 +5,9 @@ const fs = require('fs-extra');
 const path = require('path');
 
 // Configuration (REPLACE THESE!)
-const BOT_TOKEN = '7762199917:AAGimHdXulwYiVspij8Jwr_hNO7dctRiITk'; // From @BotFather
-const YOUR_TELEGRAM_USER_ID = '5058242890'; // From @userinfobot
-const CHANNEL_USERNAME = '@wallpaper_yamiro'; // Your channel username with @
+const BOT_TOKEN = '7762199917:'; // From @BotFather
+const YOUR_TELEGRAM_USER_ID = ''; // From @userinfobot
+const CHANNEL_USERNAME = '@'; // Your channel username with @
 
 
 const bot = new Telegraf(BOT_TOKEN);
