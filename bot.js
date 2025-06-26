@@ -3,8 +3,6 @@ const axios = require('axios');
 const crypto = require('crypto');
 const fs = require('fs-extra');
 const path = require('path');
-const PQueue = require('p-queue').default;
-const queue = new PQueue({ concurrency: 1, interval: 1000 }); // Sequential processing
 
 // Configuration (REPLACE THESE!)
 const BOT_TOKEN = '7762199917:AAGimHdXulwYiVspij8Jwr_hNO7dctRiITk'; // From @BotFather
@@ -19,6 +17,8 @@ const TEMP_DIR = path.join(__dirname, 'temp');
 // Data storage
 let fileHashes = new Set();
 let messageHashMap = new Map();
+let PQueue;
+let queue; // <-- add this
 
 // Load saved data
 async function loadData() {
@@ -110,9 +110,11 @@ bot.on('channel_post', (ctx) => {
   });
 });
 
-
 // Start bot
 (async () => {
+  PQueue = (await import('p-queue')).default;
+  queue = new PQueue({ concurrency: 1, interval: 1000 }); // Sequential processing
+
   await loadData();
   await fs.ensureDir(TEMP_DIR);
 
