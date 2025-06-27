@@ -1,3 +1,4 @@
+require('dotenv').config();
 const { Telegraf } = require('telegraf');
 const axios = require('axios');
 const crypto = require('crypto');
