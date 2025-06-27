@@ -138,7 +138,6 @@ bot.on('channel_post', (ctx) => {
       console.log(`🚀 Webhook server running on port ${PORT}`);
     });
   } else {
-    // Development: use polling
     await bot.telegram.deleteWebhook();
     bot.launch();
     app.get('/', (req, res) => res.send('Bot is running in polling mode!'));
