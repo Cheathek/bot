@@ -23,7 +23,7 @@ const bot = new Telegraf(BOT_TOKEN);
 const HASHES_FILE = path.join(__dirname, 'hashes.json');
 const TEMP_DIR = path.join(__dirname, 'temp');
 
-// Data storage
+// Data storage.
 let fileHashes = new Set();
 let messageHashMap = new Map();
 let PQueue;
